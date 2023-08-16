@@ -1,0 +1,16 @@
+version: "3"
+services:
+  mongo:
+    container_name: "mongo"
+    image: mongo:4.2.23
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=api
+      - MONGO_INITDB_ROOT_PASSWORD=paSs!!2827
+    volumes:
+      - ./data/mongo-volume:/data/db
+      - ./data/mongo-dump:/data/mongo-dump
+    ports:
+      - 27017:27017
+    command: --auth
+

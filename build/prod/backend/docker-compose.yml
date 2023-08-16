@@ -1,0 +1,67 @@
+version: "3"
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:1.19.6-alpine
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - node-1:node-1
+      - node-2:node-2
+    volumes:
+      - ./nginx-conf:/etc/nginx/conf.d # config
+      - ./data/certbot/cert:/etc/letsencrypt # certificate files
+      - ./data/certbot/www:/var/www/certbot # certbot challenge
+      - ./data/nginx-logs:/var/log/nginx # nginx log
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "10"
+  node-1:
+    container_name: node-1
+    build: ./server
+    restart: on-failure
+    environment:
+      - NODE_APP_INSTANCE=1
+      - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "10"
+  node-2:
+    container_name: node-2
+    build: ./server
+    restart: on-failure
+    environment:
+      - NODE_APP_INSTANCE=2
+      - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "10"
+  mongo:
+    container_name: "mongo"
+    image: mongo:4.2.24
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=api
+      - MONGO_INITDB_ROOT_PASSWORD=paSs!!2827
+    volumes:
+      - ./data/mongo-volume:/data/db
+      - ./data/mongo-dump:/data/mongo-dump
+    ports:
+      - 27017:27017
+    command: --auth
+  certbot:
+    container_name: "certbot"
+    image: certbot/certbot:v1.11.0
+    volumes:
+      - ./data/certbot/cert:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
